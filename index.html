@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>comprimidos ramal</title>
+  
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprimidos Ramal</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #fff;
+            color: #000;
+        }
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            font-weight: normal;
+        }
+        main {
+            display: flex;
+            flex-direction: row;
+            padding: 80px 20px 20px 20px;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .file-list {
+            border: 1px solid #000;
+            padding: 10px;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+        select, button {
+            padding: 10px;
+            border: 1px solid #000;
+            background: #fff;
+            color: #000;
+            cursor: pointer;
+        }
+        select:focus, button:hover {
+            border-color: #0000EE;
+            color: #0000EE;
+        }
+        /* Responsive */
+        @media (max-width: 600px) {
+            main {
+                flex-direction: column;
+            }
+        }
+        /* Barra de progreso estilo "difference" */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: #fff;
+            mix-blend-mode: difference;
+            pointer-events: none;
+            transition: width 1s linear;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <header>Comprimidos Ramal</header>
+
+    <div class="progress-bar" id="progressBar"></div>
+
+    <main>
+        <div class="column">
+            <input type="file" id="fileInput" accept="image/jpeg" multiple>
+            <div class="file-list" id="fileList">No hay archivos cargados</div>
+        </div>
+        <div class="column">
+            <label for="qualitySelect">Selecciona porcentaje de compresión:</label>
+            <select id="qualitySelect">
+                <option value="0.9">90%</option>
+                <option value="0.8">80%</option>
+                <option value="0.7">70%</option>
+                <option value="0.6">60%</option>
+                <option value="0.5">50%</option>
+                <option value="0.4">40%</option>
+                <option value="0.3">30%</option>
+                <option value="0.2">20%</option>
+                <option value="0.1">10%</option>
+            </select>
+            <button id="compressBtn">Confirmar acción</button>
+        </div>
+    </main>
+
+    <!-- Librería JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const compressBtn = document.getElementById('compressBtn');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const progressBar = document.getElementById('progressBar');
+        let files = [];
+
+        // Actualiza la lista de archivos cargados
+        fileInput.addEventListener('change', () => {
+            files = Array.from(fileInput.files).filter(file => file.type === 'image/jpeg');
+            if (files.length === 0) {
+                fileList.textContent = 'No hay archivos cargados';
+            } else {
+                fileList.innerHTML = files.map(f => `<div>${f.name}</div>`).join('');
+            }
+        });
+
+        // Evento del botón de compresión
+        compressBtn.addEventListener('click', () => {
+            if (files.length === 0) {
+                alert('Por favor carga archivos JPG.');
+                return;
+            }
+
+            // Inicia la animación de barrido blanco
+            progressBar.style.width = '0%';
+            progressBar.offsetHeight; // Fuerza repaint
+            progressBar.style.width = '100%';
+
+            const zip = new JSZip();
+            const quality = parseFloat(qualitySelect.value);
+
+            let processed = 0;
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        canvas.toBlob(blob => {
+                            zip.file(file.name, blob);
+                            processed++;
+                            if (processed === files.length) {
+                                zip.generateAsync({ type: 'blob' }).then(content => {
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(content);
+                                    link.download = 'comprimidos_ramal.zip';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    progressBar.style.width = '0%'; // Resetea la barra
+                                });
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+</body>
+</html>
+<!-- partial -->
+  
+</body>
+</html>
